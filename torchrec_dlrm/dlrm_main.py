@@ -18,7 +18,8 @@ from pyre_extensions import none_throws
 from torch import distributed as dist
 from torch.utils.data import DataLoader
 from torchrec import EmbeddingBagCollection
-from torchrec.datasets.criteo import DEFAULT_CAT_NAMES, DEFAULT_INT_NAMES
+# from torchrec.datasets.criteo import DEFAULT_CAT_NAMES, DEFAULT_INT_NAMES
+from features import DEFAULT_CAT_NAMES, DEFAULT_INT_NAMES
 from torchrec.distributed import TrainPipelineSparseDist
 from torchrec.distributed.comm import get_local_size
 from torchrec.distributed.model_parallel import (
@@ -573,9 +574,14 @@ def main(argv: List[str]) -> None:
             if getattr(args, attr) is None:
                 setattr(args, attr, 10)
 
-    train_dataloader = get_dataloader(args, backend, "train")
-    val_dataloader = get_dataloader(args, backend, "val")
-    test_dataloader = get_dataloader(args, backend, "test")
+    train_length = int(len(dataset) * 0.8)
+    valid_length = int(len(dataset) * 0.1)
+    test_length = len(dataset) - train_length - valid_length
+    train_dataset, valid_dataset, test_dataset = torch.utils.data.random_split(
+        dataset, (train_length, valid_length, test_length))
+    train_data_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=0)
+    val_data_loader = DataLoader(valid_dataset, batch_size=batch_size, num_workers=0)
+    test_data_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=0)
 
     eb_configs = [
         EmbeddingBagConfig(
