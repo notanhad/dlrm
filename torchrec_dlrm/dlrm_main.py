@@ -37,6 +37,25 @@ from torchrec.optim.keyed import CombinedOptimizer, KeyedOptimizerWrapper
 from torchrec.optim.optimizers import in_backward_optimizer_filter
 from tqdm import tqdm
 
+from google.colab import drive
+
+class RTData(torch.utils.data.Dataset):
+
+    def __init__(self, data):
+        self.data = data
+        self.items = self.data[:, :-1].astype(np.int32)
+        self.targets = self.data[:, -1].astype(np.float32)
+        self.field_dims = np.max(self.items, axis=0) + 1
+        # self.user_field_idx = np.array((0, ), dtype=np.long)
+        # self.item_field_idx = np.array((1,), dtype=np.long)
+
+    def __len__(self):
+        return self.targets.shape[0]
+
+    def __getitem__(self, index):
+        return self.items[index], self.targets[index]
+
+
 # OSS import
 try:
     # pyre-ignore[21]
@@ -574,14 +593,20 @@ def main(argv: List[str]) -> None:
             if getattr(args, attr) is None:
                 setattr(args, attr, 10)
 
+    drive.mount("/content/drive")
+    data = pd.read_pickle("/content/drive/My Drive/final_data3.p").to_numpy()
+    np.save("final_data3.npy", data)
+    data = np.load("final_data3.npy")
+    dataset = RTData(data)
+    
     train_length = int(len(dataset) * 0.8)
     valid_length = int(len(dataset) * 0.1)
     test_length = len(dataset) - train_length - valid_length
     train_dataset, valid_dataset, test_dataset = torch.utils.data.random_split(
         dataset, (train_length, valid_length, test_length))
-    train_data_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=0)
-    val_data_loader = DataLoader(valid_dataset, batch_size=batch_size, num_workers=0)
-    test_data_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=0)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=0)
+    val_dataloader = DataLoader(valid_dataset, batch_size=batch_size, num_workers=0)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=0)
 
     eb_configs = [
         EmbeddingBagConfig(
