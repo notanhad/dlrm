@@ -8,6 +8,8 @@ import argparse
 import itertools
 import os
 import sys
+import numpy as np
+import pandas as pd
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Iterator, List, Optional
@@ -18,8 +20,7 @@ from pyre_extensions import none_throws
 from torch import distributed as dist
 from torch.utils.data import DataLoader
 from torchrec import EmbeddingBagCollection
-# from torchrec.datasets.criteo import DEFAULT_CAT_NAMES, DEFAULT_INT_NAMES
-from features import DEFAULT_CAT_NAMES, DEFAULT_INT_NAMES
+from torchrec.datasets.criteo import DEFAULT_CAT_NAMES, DEFAULT_INT_NAMES
 from torchrec.distributed import TrainPipelineSparseDist
 from torchrec.distributed.comm import get_local_size
 from torchrec.distributed.model_parallel import (
@@ -38,6 +39,10 @@ from torchrec.optim.optimizers import in_backward_optimizer_filter
 from tqdm import tqdm
 
 from google.colab import drive
+drive.mount('/content/drive')
+
+TRAIN_PIPELINE_STAGES = 3  # Number of stages in TrainPipelineSparseDist.
+
 
 class RTData(torch.utils.data.Dataset):
 
@@ -45,42 +50,13 @@ class RTData(torch.utils.data.Dataset):
         self.data = data
         self.items = self.data[:, :-1].astype(np.int32)
         self.targets = self.data[:, -1].astype(np.float32)
-        self.field_dims = np.max(self.items, axis=0) + 1
-        # self.user_field_idx = np.array((0, ), dtype=np.long)
-        # self.item_field_idx = np.array((1,), dtype=np.long)
+        self.num_embeddings_per_feature = np.max(self.items, axis=0) + 1
 
     def __len__(self):
         return self.targets.shape[0]
 
     def __getitem__(self, index):
         return self.items[index], self.targets[index]
-
-
-# OSS import
-try:
-    # pyre-ignore[21]
-    # @manual=//ai_codesign/benchmarks/dlrm/torchrec_dlrm/data:dlrm_dataloader
-    from data.dlrm_dataloader import get_dataloader
-
-    # pyre-ignore[21]
-    # @manual=//ai_codesign/benchmarks/dlrm/torchrec_dlrm:lr_scheduler
-    from lr_scheduler import LRPolicyScheduler
-
-    # pyre-ignore[21]
-    # @manual=//ai_codesign/benchmarks/dlrm/torchrec_dlrm:multi_hot
-    from multi_hot import Multihot, RestartableMap
-except ImportError:
-    pass
-
-# internal import
-try:
-    from .data.dlrm_dataloader import get_dataloader  # noqa F811
-    from .lr_scheduler import LRPolicyScheduler  # noqa F811
-    from .multi_hot import Multihot, RestartableMap  # noqa F811
-except ImportError:
-    pass
-
-TRAIN_PIPELINE_STAGES = 3  # Number of stages in TrainPipelineSparseDist.
 
 
 class InteractionType(Enum):
@@ -593,20 +569,32 @@ def main(argv: List[str]) -> None:
             if getattr(args, attr) is None:
                 setattr(args, attr, 10)
 
-    drive.mount("/content/drive")
-    data = pd.read_pickle("/content/drive/My Drive/final_data3.p").to_numpy()
-    np.save("final_data3.npy", data)
-    data = np.load("final_data3.npy")
+    print("Loading data...")
+    try:
+        data = np.load("final_data3.npy", mmap_mode="r+")
+        DEFAULT_CAT_NAMES = np.load("DEFAULT_CAT_NAMES.npy")
+        DEFAULT_INT_NAMES = []
+    except FileNotFoundError:
+        data = pd.read_pickle("/content/drive/My Drive/final_data3.p")
+        DEFAULT_CAT_NAMES = data.columns[:-1].to_numpy()
+        DEFAULT_INT_NAMES = []
+        data = data.to_numpy()
+        np.save("DEFAULT_CAT_NAMES.npy", DEFAULT_CAT_NAMES)
+        np.save("final_data3.npy", data)
     dataset = RTData(data)
-    
+    args.num_embeddings_per_feature = dataset.num_embeddings_per_feature
+    print("Data loaded.")
+
     train_length = int(len(dataset) * 0.8)
     valid_length = int(len(dataset) * 0.1)
     test_length = len(dataset) - train_length - valid_length
+
     train_dataset, valid_dataset, test_dataset = torch.utils.data.random_split(
         dataset, (train_length, valid_length, test_length))
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=0)
-    val_dataloader = DataLoader(valid_dataset, batch_size=batch_size, num_workers=0)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=0)
+
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=0)
+    val_dataloader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=0)
+    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=0)
 
     eb_configs = [
         EmbeddingBagConfig(
