@@ -566,8 +566,7 @@ def main(argv: List[str]) -> None:
         or args.synthetic_multi_hot_criteo_path is None
     ), "--multi_hot_distribution_type is used to convert 1-hot to multi-hot. It's inapplicable with --synthetic_multi_hot_criteo_path."
 
-    # rank = int(os.environ["LOCAL_RANK"])
-    rank = torch.cuda.device_count()
+    rank = int(os.environ["LOCAL_RANK"])
     if torch.cuda.is_available():
         device: torch.device = torch.device(f"cuda:{rank}")
         backend = "nccl"
@@ -581,7 +580,7 @@ def main(argv: List[str]) -> None:
             "PARAMS: (lr, batch_size, warmup_steps, decay_start, decay_steps): "
             f"{(args.learning_rate, args.batch_size, args.lr_warmup_steps, args.lr_decay_start, args.lr_decay_steps)}"
         )
-    dist.init_process_group(backend=backend, init_method='env://', rank = torch.cuda.device_count(), world_size = 1)
+    dist.init_process_group(backend=backend) # init_method='env://', rank = os.environ["RANK"], world_size = os.environ["WORLD_SIZE"]
 
     if args.num_embeddings_per_feature is not None:
         args.num_embeddings = None
