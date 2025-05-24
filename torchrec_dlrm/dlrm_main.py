@@ -566,7 +566,7 @@ def main(argv: List[str]) -> None:
         or args.synthetic_multi_hot_criteo_path is None
     ), "--multi_hot_distribution_type is used to convert 1-hot to multi-hot. It's inapplicable with --synthetic_multi_hot_criteo_path."
 
-    rank = int(os.environ["LOCAL_RANK"])
+    rank = int(os.environ["RANK"])
     if torch.cuda.is_available():
         device: torch.device = torch.device(f"cuda:{rank}")
         backend = "nccl"
