@@ -13,8 +13,10 @@ import pandas as pd
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Iterator, List, Optional
+os.environ["RANK"] = "0"
+os.environ["WORLD_SIZE"] = "1"
 os.environ["MASTER_ADDR"] = "localhost"
-os.environ["MASTER_PORT"] = "56492"
+os.environ["MASTER_PORT"] = "29500"
 
 import torch
 import torchmetrics as metrics
