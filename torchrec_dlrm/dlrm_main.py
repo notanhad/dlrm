@@ -41,8 +41,31 @@ from tqdm import tqdm
 # from google.colab import drive
 # drive.mount('/content/drive')
 
-TRAIN_PIPELINE_STAGES = 3  # Number of stages in TrainPipelineSparseDist.
+# OSS import
+try:
+    # pyre-ignore[21]
+    # @manual=//ai_codesign/benchmarks/dlrm/torchrec_dlrm/data:dlrm_dataloader
+    from data.dlrm_dataloader import get_dataloader
 
+    # pyre-ignore[21]
+    # @manual=//ai_codesign/benchmarks/dlrm/torchrec_dlrm:lr_scheduler
+    from lr_scheduler import LRPolicyScheduler
+
+    # pyre-ignore[21]
+    # @manual=//ai_codesign/benchmarks/dlrm/torchrec_dlrm:multi_hot
+    from multi_hot import Multihot, RestartableMap
+except ImportError:
+    pass
+
+# internal import
+try:
+    from .data.dlrm_dataloader import get_dataloader  # noqa F811
+    from .lr_scheduler import LRPolicyScheduler  # noqa F811
+    from .multi_hot import Multihot, RestartableMap  # noqa F811
+except ImportError:
+    pass
+
+TRAIN_PIPELINE_STAGES = 3  # Number of stages in TrainPipelineSparseDist.
 
 class RTData(torch.utils.data.Dataset):
 
