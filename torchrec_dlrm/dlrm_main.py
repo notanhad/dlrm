@@ -35,6 +35,8 @@ from torchrec.distributed.planner import EmbeddingShardingPlanner, Topology
 from torchrec.distributed.planner.storage_reservations import (
     HeuristicalStorageReservation,
 )
+from torchrec.distributed.planner.types import ParameterConstraints
+from torchrec.distributed.embedding_types import EmbeddingComputeKernel
 from torchrec.models.dlrm import DLRM, DLRM_DCN, DLRM_Projection, DLRMTrain
 from torchrec.modules.embedding_configs import EmbeddingBagConfig
 from torchrec.optim.apply_optimizer_in_backward import apply_optimizer_in_backward
