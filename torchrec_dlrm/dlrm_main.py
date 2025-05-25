@@ -598,8 +598,8 @@ def main(argv: List[str]) -> None:
 
     print("Loading data...")
     try:
-        data = np.load("final_data3.npy", mmap_mode="r+")
-        DEFAULT_CAT_NAMES = np.load("DEFAULT_CAT_NAMES.npy")
+        data = np.load("./final_data3.npy", mmap_mode="r+")
+        DEFAULT_CAT_NAMES = np.load("./DEFAULT_CAT_NAMES.npy")
         DEFAULT_INT_NAMES = []
     except FileNotFoundError:
         data = pd.read_pickle("/content/drive/My Drive/final_data3.p")
