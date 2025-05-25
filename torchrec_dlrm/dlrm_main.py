@@ -42,8 +42,8 @@ from torchrec.optim.keyed import CombinedOptimizer, KeyedOptimizerWrapper
 from torchrec.optim.optimizers import in_backward_optimizer_filter
 from tqdm import tqdm
 
-# from google.colab import drive
-# drive.mount('/content/drive')
+from google.colab import drive
+drive.mount('/content/drive')
 
 # OSS import
 try:
@@ -597,21 +597,21 @@ def main(argv: List[str]) -> None:
                 setattr(args, attr, 10)
 
     print("Loading data...")
-    # try:
-    #     data = np.load("final_data3.npy", mmap_mode="r+")
-    #     DEFAULT_CAT_NAMES = np.load("DEFAULT_CAT_NAMES.npy")
-    #     DEFAULT_INT_NAMES = []
-    # except FileNotFoundError:
-    #     data = pd.read_pickle("/content/drive/My Drive/final_data3.p")
-    #     DEFAULT_CAT_NAMES = data.columns[:-1].to_numpy()
-    #     DEFAULT_INT_NAMES = []
-    #     data = data.to_numpy()
-    #     np.save("DEFAULT_CAT_NAMES.npy", DEFAULT_CAT_NAMES)
-    #     np.save("final_data3.npy", data)
-    data = pd.read_pickle("final_data3.p")
-    DEFAULT_CAT_NAMES = data.columns[:-1].to_numpy()
-    DEFAULT_INT_NAMES = []
-    data = data.to_numpy()
+    try:
+        data = np.load("final_data3.npy", mmap_mode="r+")
+        DEFAULT_CAT_NAMES = np.load("DEFAULT_CAT_NAMES.npy")
+        DEFAULT_INT_NAMES = []
+    except FileNotFoundError:
+        data = pd.read_pickle("/content/drive/My Drive/final_data3.p")
+        DEFAULT_CAT_NAMES = data.columns[:-1].to_numpy()
+        DEFAULT_INT_NAMES = []
+        data = data.to_numpy()
+        np.save("DEFAULT_CAT_NAMES.npy", DEFAULT_CAT_NAMES)
+        np.save("final_data3.npy", data)
+    # data = pd.read_pickle("final_data3.p")
+    # DEFAULT_CAT_NAMES = data.columns[:-1].to_numpy()
+    # DEFAULT_INT_NAMES = []
+    # data = data.to_numpy()
     dataset = RTData(data)
     args.num_embeddings_per_feature = dataset.num_embeddings_per_feature
     print("Data loaded.")
